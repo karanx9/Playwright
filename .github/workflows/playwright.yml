@@ -1,0 +1,94 @@
+name: Playwright E2E Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  # Nightly run to catch environmental regressions
+  schedule:
+    - cron: '0 3 * * 1-5'   # 03:00 UTC Mon–Fri
+  # Allow manual trigger from the GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Browser to run (chromium | firefox | webkit | all)'
+        required: false
+        default: 'chromium'
+
+jobs:
+  # ── Test job — runs in parallel per browser ───────────────────────────────
+  playwright-tests:
+    name: Tests — ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright + browser binaries
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run Playwright tests (${{ matrix.browser }})
+        run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          CI: true
+
+      - name: Upload HTML report & artifacts
+        uses: actions/upload-artifact@v4
+        if: always()      # Upload even on failure so we can debug
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: |
+            playwright-report/
+            test-results/
+            screenshots/
+          retention-days: 30
+
+  # ── Smoke-only quick check (chromium, runs on every push) ─────────────────
+  smoke-check:
+    name: Smoke — Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run smoke tests only
+        run: npx playwright test --project=chromium --grep @smoke
+        env:
+          CI: true
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-failure-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

@@ -1,0 +1,26 @@
+{
+  "name": "saucedemo-playwright-automation",
+  "version": "1.0.0",
+  "description": "Production-grade Playwright E2E automation suite for SauceDemo — POM, multi-browser, CI/CD, screenshots & video capture",
+  "scripts": {
+    "test": "playwright test",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:mobile": "playwright test --project='Mobile Chrome' --project='Mobile Safari'",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "test:e2e": "playwright test --grep @e2e",
+    "test:auth": "playwright test tests/auth/",
+    "test:cart": "playwright test tests/cart/",
+    "test:inventory": "playwright test tests/inventory/",
+    "report": "playwright show-report playwright-report",
+    "clean": "rm -rf playwright-report test-results screenshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
